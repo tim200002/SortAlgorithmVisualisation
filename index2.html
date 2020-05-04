@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF_8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="id=edge" />
+    <title>Sorting Algorithm Visualization</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.min.js"> </script>
+    <!For importing the Chart JS library>
+</head>
+
+<body>
+    <p><button onClick="startSort(myChart)">Sort Array</button>
+     <button onClick="stopSort(myChart)">Stop</button>
+    <button onClick="newChart(myChart,document.getElementById('mySize').value)">Create Random Data</button>
+    <select id="selectAlgorithmddl">
+        <option>Bubble Sort</option>
+        <option>Quick Sort</option>
+        <option>Insertion Sort</option>
+        <option>Selection Sort</option>
+    </select></p>
+    Size (10-100): <input type="range" min="10" max="100" value="20" step="1" class="slider" id="mySize">
+    Speed (slow-fast): <input type="range" min="30" max="700" value="350" step="1" class="slider" id="mySpeed">
+    <canvas id="myChart" width="500" ></canvas>
+
+
+    <script>
+//Konstanten
+const minSpeed=700;
+const maxSpeed=30;
+//Class for a chart
+        class Charty{
+            constructor(length){
+                this.data=createData(length), //neccesary to give the labels the value of the data
+                this.chart=createChart(this.data),
+                this.isSorting=false
+            }
+       }
+
+//General Chart Fucntions
+
+//One chart gets constructed
+       let myChart =new Charty(document.getElementById("mySize").value);
+       console.log(myChart.chart.data.datasets[0].data);
+
+       //Starts Sorting of the chart with the right sorting algorithm
+       async function startSort(myChart) {
+            let e = document.getElementById("selectAlgorithmddl");
+            if(myChart.isSorting==true){
+            myChart.isSorting=false; 
+            await sleep((document.getElementById("mySpeed").value-(minSpeed+maxSpeed))*(-1)); //Neccesary to make sure not two sortings at same time, Idea for later make Button not usable or change sort and stop BUtton
+            }
+            myChart.isSorting=true;
+            switch (e.selectedIndex) {
+                case 0:
+                    bubbleSort(myChart);
+                    break;
+                case 1:
+                    quickSort(0, myChart.data.length-1, myChart);
+                    break;
+                case 2:
+                    insertionSort(myChart);
+                    break;
+                case 3:
+                    selectionSort(myChart);
+                    break;
+            }
+
+        }
+
+//Stop Sorting
+        function stopSort(myChart){
+            myChart.isSorting=false; //Later reference
+        }
+
+//Create a new Chart
+        function newChart(myChart,length) {
+            myChart.chart.destroy();
+            myChart.isSorting=false;
+            myChart.data=createData(length)
+            myChart.chart=createChart(myChart.data);
+        }
+
+//Create a chart
+        function createChart(data) {
+            var ctx = document.getElementById('myChart').getContext('2d');
+            var myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels:data,
+                    datasets: [{
+                        label: '# of Votes',
+                        data:data,
+                        borderWidth: 1,
+                       // backgroundColor: backgroundColor(0, values.length),
+                        
+                       
+                    }]
+                },
+
+                options: {
+                    legend: {
+                        display: false
+                    },
+                    scales: {
+                        yAxes: [{
+                            display: false,
+                            gridLines: {
+                                drawBorder: false,
+                            },
+                        }],
+                        xAxes: [{
+                            gridLines: {
+                                display: false,
+                            },
+                        }],
+                    },
+                    maintainAspectRatio: false,
+                }
+            });
+            return myChart;
+        }
+
+        function createData(length) { //Later with optonal length
+            
+            const height = length*5;
+            return Array.from({ length: length }, () => Math.floor(Math.random() * height));
+
+        }
+
+//Sort Functions
+        async function bubbleSort(myChart) {
+            let flag = false;
+            do {
+                flag = false;
+
+                for (let i = 0; i < myChart.data.length; ++i) {
+                    if (myChart.isSorting==false) return  //Stop Sorting
+
+                    myChart.chart.data.datasets[0].backgroundColor = createColorBubble(i, myChart.chart.data.datasets[0].data.length);
+                    myChart.chart.update(0);
+                    await sleep((document.getElementById("mySpeed").value-(minSpeed+maxSpeed))*(-1));
+                    if (myChart.chart.data.datasets[0].data[i] > myChart.chart.data.datasets[0].data[i+1]) {
+                        if (myChart.isSorting==false) return //Only necessary for cas when new data while still sorting
+                        let temp = myChart.data[i]
+                        myChart.data[i] = myChart.data[i+1]
+                        myChart.data[i+1] = temp;
+                        flag = true;
+
+                        myChart.chart.update();
+                        await sleep((document.getElementById("mySpeed").value-(minSpeed+maxSpeed))*(-1));
+                    }
+
+                }
+
+
+            } while (flag);
+            myChart.chart.data.datasets[0].backgroundColor=createColorSortFinished(myChart);
+            myChart.chart.update(0);
+        }
+
+
+        async function partition(left, right, myChart) {
+            var items=myChart.data;
+            var pivot = items[Math.floor((right + left) / 2)], //middle element
+                i = left, //left pointer
+                j = right; //right pointer
+            while (i <= j) {
+                while (items[i] < pivot) {
+                    if (myChart.isSorting==false) return false //Stop Sorting
+                    i++;
+                    myChart.chart.data.datasets[0].backgroundColor = createColorForQuick(items, items.length, i, j, pivot);
+                    myChart.chart.update(0);
+                    await sleep((document.getElementById("mySpeed").value-(minSpeed+maxSpeed))*(-1));
+                }
+                while (items[j] > pivot) {
+                    if (myChart.isSorting==false) return false //Stop Sorting
+                    j--;
+                    myChart.chart.data.datasets[0].backgroundColor = createColorForQuick(items, items.length, i, j, pivot);
+                    myChart.chart.update(0);
+                    await sleep((document.getElementById("mySpeed").value-(minSpeed+maxSpeed))*(-1));
+                }
+                if (i <= j) {
+                    swap(items, i, j); //sawpping two elements
+                    myChart.chart.update(0);
+                    await sleep((document.getElementById("mySpeed").value-(minSpeed+maxSpeed))*(-1));
+                    i++;
+                    j--;
+                }
+            }
+            return i;
+        }
+
+        async function quickSort( left, right, myChart) {
+            var items= myChart.data;
+            var index;
+            if (items.length > 1) {
+                index = await partition(left, right, myChart); //index returned from partition
+                if (index ==false) return  //Stop Sorting
+                if (left < index - 1) { //more elements on the left side of the pivot
+                    quickSort(left, index - 1, myChart);
+                }
+                if (index < right) { //more elements on the right side of the pivot
+                    quickSort(index, right, myChart);
+                }
+            }
+           // myChart.chart.data.datasets[0].backgroundColor=createColorSortFinished(myChart);
+            //myChart.chart.update(0);
+        }
+
+//Insertion Sort
+        async function insertionSort(myChart){
+            let temp=0;
+            let j=0;
+            for(i=1;i<myChart.data.length;++i){ //Iterate over List starting by second (List of length 1 is always sorted)
+                j=i
+                myChart.chart.data.datasets[0].backgroundColor=createColorForInsertion(j,i,myChart.data.length);
+                myChart.chart.update(0);
+                await sleep((document.getElementById("mySpeed").value-(minSpeed+maxSpeed))*(-1));
+                while ((j>0)&&(myChart.data[j-1]>myChart.data[j])){
+                    if (myChart.isSorting==false) return
+                    swap(myChart.data,j-1,j);
+                    myChart.chart.data.datasets[0].backgroundColor=createColorForInsertion(j-1,i+1,myChart.data.length);
+                myChart.chart.update(0);
+                await sleep((document.getElementById("mySpeed").value-(minSpeed+maxSpeed))*(-1));
+                    --j;
+                }
+            }
+            myChart.chart.data.datasets[0].backgroundColor=createColorSortFinished(myChart);
+            myChart.chart.update(0);
+        }
+
+//Selection Sort
+        async function selectionSort(myChart){
+            for(i=0; i<myChart.data.length-1;++i){
+                if (myChart.isSorting==false) return
+                min=i;
+                myChart.chart.data.datasets[0].backgroundColor=createColorForSelection(i,i,i,myChart.data.length);
+                myChart.chart.update(0);
+                await sleep((document.getElementById("mySpeed").value-(minSpeed+maxSpeed))*(-1));
+                for(j=i+1;j<myChart.data.length;++j){
+                    if (myChart.isSorting==false) return
+                    if(myChart.data[j]<myChart.data[min]) min=j;
+                    myChart.chart.data.datasets[0].backgroundColor=createColorForSelection(j,min,i,myChart.data.length);
+                    myChart.chart.update(0);
+                    await sleep((document.getElementById("mySpeed").value-(minSpeed+maxSpeed))*(-1));
+                }
+                swap(myChart.data,i,min);
+
+            }
+            myChart.chart.data.datasets[0].backgroundColor=createColorSortFinished(myChart);
+            myChart.chart.update(0);
+        }
+//Helper Function
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function swap(items, leftIndex, rightIndex) { //Check if async necessary?
+            var temp = items[leftIndex];
+            items[leftIndex] = items[rightIndex];
+            items[rightIndex] = temp;
+        }
+//Color Functions
+//Creates background Color Array so that position is clear -> for bubbleSort
+        function createColorBubble(index, length) {
+            return Array.from({ length: length }, function (curr, indexinArray) {
+                if (indexinArray == index || indexinArray == index + 1) {
+                    return 'rgba(13, 112, 33, 1)'
+                }
+                else {
+                    return 'rgba(137, 140, 138, 0.5)'
+                }
+            })
+        }
+
+        function createColorForQuick(data, length, left, right, pivot) {
+            return Array.from({ length: length }, function (curr, index) {
+                if (index == left || index == right) return 'rgba(13, 112, 33, 1)';
+                else if (data[index] == pivot) return 'rgba(255, 112, 33, 1)';
+                else return 'rgba(137, 140, 138, 0.5)';
+            });
+        }
+
+        function createColorForInsertion(index, sortedLength, length){ //Sorted List green actual Element red
+            return Array.from({ length: length }, function (curr, indexinArray) {
+                if (indexinArray==index) return 'rgba(255, 112, 33, 1)';
+                else if(indexinArray<sortedLength)  return 'rgba(13, 112, 33, 1)';
+                else return 'rgba(137, 140, 138, 0.5)';
+            });
+        }
+
+        function createColorForSelection(index,actualMin, sortedLength, length){ //Sorted List green actual Smallest Element Red, Actual Element blue
+            return Array.from({ length: length }, function (curr, indexinArray) {
+                
+                if(indexinArray<sortedLength)  return 'rgba(13, 112, 33, 1)';
+                else if (indexinArray==index) return 'rgba(255, 112, 33, 1)';
+                else if (indexinArray==actualMin) return 'rgba(0, 255, 255, 1)';
+                else return 'rgba(137, 140, 138, 0.5)';
+            });
+        }
+//Color whole chart when Sort finished
+        function createColorSortFinished(myChart){
+            return Array.from({length:myChart.data.length},()=>'rgba(255, 112, 33, 1)');
+        }
+
+    </script>
+    </canvas>
+</body>
+
+</html>
